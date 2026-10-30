@@ -13,36 +13,64 @@ namespace Trabajo_Integrador.Datos
             _conexionDB = new ConexionDB();
         }
 
+
         public void AgregarPelicula(Pelicula pelicula)
         {
             using (SqliteConnection conexion = _conexionDB.ObtenerConexion())
             {
                 conexion.Open();
 
-                string consulta = @"
-                    INSERT INTO Peliculas
-                    (Titulo, Genero, Anio, Duracion, Sinopsis)
-                    VALUES
-                    (@titulo, @genero, @anio, @duracion, @sinopsis);";
-
-                using (SqliteCommand comando =new SqliteCommand(consulta, conexion))
+                // La transacción evita que otra operación inserte el mismo ID
+                // entre la búsqueda del identificador libre y la inserción.
+                using (SqliteTransaction transaccion = conexion.BeginTransaction())
                 {
-                    comando.Parameters.AddWithValue(
-                        "@titulo", pelicula.Titulo);
+                    int siguienteId = 1;
 
-                    comando.Parameters.AddWithValue(
-                        "@genero", pelicula.Genero);
+                    string consultaIds = @"
+                        SELECT Id
+                        FROM Peliculas
+                        ORDER BY Id;";
 
-                    comando.Parameters.AddWithValue(
-                        "@anio", pelicula.Anio);
+                    using (SqliteCommand comandoIds = new SqliteCommand(
+                        consultaIds, conexion, transaccion))
+                    using (SqliteDataReader lector = comandoIds.ExecuteReader())
+                    {
+                        while (lector.Read())
+                        {
+                            int idActual = lector.GetInt32(0);
 
-                    comando.Parameters.AddWithValue(
-                        "@duracion", pelicula.Duracion);
+                            if (idActual == siguienteId)
+                            {
+                                siguienteId++;
+                            }
+                            else if (idActual > siguienteId)
+                            {
+                                // Encontramos el primer hueco disponible.
+                                break;
+                            }
+                        }
+                    }
 
-                    comando.Parameters.AddWithValue(
-                        "@sinopsis", pelicula.Sinopsis);
+                    string consulta = @"
+                        INSERT INTO Peliculas
+                        (Id, Titulo, Genero, Anio, Duracion, Sinopsis)
+                        VALUES
+                        (@id, @titulo, @genero, @anio, @duracion, @sinopsis);";
 
-                    comando.ExecuteNonQuery();
+                    using (SqliteCommand comando = new SqliteCommand(
+                        consulta, conexion, transaccion))
+                    {
+                        comando.Parameters.AddWithValue("@id", siguienteId);
+                        comando.Parameters.AddWithValue("@titulo", pelicula.Titulo);
+                        comando.Parameters.AddWithValue("@genero", pelicula.Genero);
+                        comando.Parameters.AddWithValue("@anio", pelicula.Anio);
+                        comando.Parameters.AddWithValue("@duracion", pelicula.Duracion);
+                        comando.Parameters.AddWithValue("@sinopsis", pelicula.Sinopsis);
+
+                        comando.ExecuteNonQuery();
+                    }
+
+                    transaccion.Commit();
                 }
             }
         }

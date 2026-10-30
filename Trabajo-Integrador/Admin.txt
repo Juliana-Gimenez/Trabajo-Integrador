@@ -1,0 +1,23 @@
+ IMPORTANTE!
+ Las siguientes líneas de código se han ejecutado durante el armado del programa para poder establecer un 
+ usuario administrador antes de permitir el registro de nuevos usuarios. 
+ Esto con la finalidad de aumentar la seguridad del sitio. 
+ Una buena práctica sería ejecutar solo una vez este código y luego eliminarlo, para que no se vulnere la seguridad del sitio; 
+ pero como el tp es evaluado, lo dejamos para que el profe entienda como nos encargamos de resolver 
+ esta situacion usuario-administrador <3
+
+
+ 
+ Console.Write("\nIngresá tu nombre de usuario para asignar el rol de administrador: ");
+ string nombreUsuarioAdmin = Console.ReadLine() ?? "";
+
+ bool actualizado = usuarioDAO.CambiarRol(nombreUsuarioAdmin, "Administrador");
+    
+ if (actualizado)
+ {
+    Console.WriteLine("¡Rol de administrador asignado correctamente!");
+ }
+ else
+ {
+    Console.WriteLine("No se encontró ese usuario.");
+ }
